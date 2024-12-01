@@ -1,0 +1,3 @@
+*.log       # 忽略所有 .log 文件
+*.tmp       # 忽略所有 .tmp 文件
+*.json       # 忽略所有 .json 文件
