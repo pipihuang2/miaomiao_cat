@@ -1,0 +1,20 @@
+name: Notify Feishu on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send PR Notification to Feishu
+        run: |
+          curl -X POST "https://open.feishu.cn/open-apis/bot/v2/hook/15ab898d-d8ac-4f41-912b-6d20ae0c6332" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "msg_type": "text",
+            "content": {
+              "text": "📢 新的 Pull Request 创建！\n🔗 ${{ github.event.pull_request.html_url }}"
+            }
+          }'
