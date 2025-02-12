@@ -23,7 +23,7 @@ jobs:
 
       - name: Analyze PR changes and post comment
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 自动提供的 Token，具有基本的权限
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}  # GitHub 自动提供的 Token，具有基本的权限
         run: |
           # 获取 PR 的信息
           PR_NUMBER=${{ github.event.pull_request.number }}
