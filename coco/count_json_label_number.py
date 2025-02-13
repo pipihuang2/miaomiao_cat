@@ -1,16 +1,16 @@
 import json
 from collections import Counter
 import glob
-
+import tqdm
 # 获取所有 JSON 文件路径
-json_list = glob.glob(r'F:\deeplearning\pytorch\miao_tools\miaomiao_cat\json\*.json')
+json_list = glob.glob(r'F:\800B\totoal_rating_data\*.json')
 
 # 初始化全局计数器和类别集合
 global_label_counts = Counter()
 global_unique_labels = set()
 
 # 遍历所有 JSON 文件
-for json_file in json_list:
+for json_file in tqdm.tqdm(json_list):
     with open(json_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
 

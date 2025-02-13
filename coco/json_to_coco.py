@@ -2,8 +2,8 @@ import json
 import os
 
 # 设置源 JSON 文件夹和输出 COCO JSON 文件
-source_dir = r'F:\deeplearning\Train_image_data\star\val_json'  # JSON 文件所在的目录
-output_file = 'F:\deeplearning\Train_image_data\star\coco_format.json'
+source_dir = r'F:\800B\val'  # JSON 文件所在的目录
+output_file = r'F:\800B\coco_format_val.json'
 
 # 初始化 COCO 格式的字典
 coco_format = {
@@ -35,7 +35,8 @@ category_dict = {}  # 用于存储类别和其对应的ID
 # 定义标签映射，将中文标签转换为英文
 label_mapping = {
     "cut": "cut",
-    "assy": "assy"
+    "assy": "assy",
+    "cut assy": "cut"
 }
 
 # 遍历 source_dir 中的所有 JSON 文件
