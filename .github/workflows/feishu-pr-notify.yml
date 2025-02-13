@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Send PR Notification to Feishu
         run: |
-          curl -X POST "https://open.feishu.cn/open-apis/bot/v2/hook/15ab898d-d8ac-4f41-912b-6d20ae0c6332" \
+          curl -X POST "https://open.feishu.cn/open-apis/bot/v2/hook/8861486c-a9ce-4c28-bad2-98a46978b1f9" \
           -H "Content-Type: application/json" \
           -d '{
             "msg_type": "text",
