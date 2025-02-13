@@ -1,4 +1,4 @@
-name: PR Review with AI
+name: AI_SEND_COMMENT
 
 on:
   pull_request:

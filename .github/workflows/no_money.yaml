@@ -1,4 +1,4 @@
-name: PR Review with AI
+name: No_Money
 
 on:
   pull_request:
@@ -32,11 +32,11 @@ jobs:
           REPO=${{ github.event.repository.name }}
           DIFF_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}.diff"
           
-          # 获取 PR diff 内容
-          PR_DIFF=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $DIFF_URL)
-
           # 清理 PR diff 内容中的控制字符
           PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
+          
+          # 获取 PR diff 内容
+          PR_DIFF=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $DIFF_URL)
 
           # 发送 PR diff 内容到 DeepSeek API 进行分析
           AI_RESPONSE=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
@@ -66,6 +66,8 @@ jobs:
           echo "::set-output name=ai_comment::$AI_COMMENT"
 
       - name: Post AI comment to PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           OWNER=${{ github.repository_owner }}
@@ -74,3 +76,29 @@ jobs:
 
           # 使用 GitHub API 发送 AI 分析生成的评论
           curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -d "{\"body\": \"${{ steps.ai_analysis.outputs.ai_comment }}\"}" $COMMENT_API_URL
+
+
+#      - name: Analyze PR changes and post comment
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}  # GitHub 自动提供的 Token，具有基本的权限
+#        run: |
+#          # 获取 PR 的信息
+#          PR_NUMBER=${{ github.event.pull_request.number }}
+#          OWNER=${{ github.repository_owner }}
+#          REPO=${{ github.event.repository.name }}
+#          API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}"
+#
+#          # 使用 curl 获取 PR 详情
+#          PR_INFO=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $API_URL)
+#
+#          # 提取 PR 标题和修改内容（可根据需要修改）
+#          PR_TITLE=$(echo $PR_INFO | jq -r '.title')
+#          PR_BODY=$(echo $PR_INFO | jq -r '.body')
+#          PR_CHANGES_URL=$(echo $PR_INFO | jq -r '.url')
+#
+#          # 假设你有一个 AI 模型分析改动并生成评论
+#          COMMENT="感谢提交我是一个测试！！！！！！！！！！！！！！！！！！ PR！\n\n### 需要注意的修改建议：\n- 请确保代码符合项目风格\n- 可以考虑优化XXX部分"
+#
+#          # 通过 GitHub API 提交评论
+#          COMMENT_API_URL="https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR_NUMBER}/comments"
+#          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -d "{\"body\": \"$COMMENT\"}" $COMMENT_API_URL
