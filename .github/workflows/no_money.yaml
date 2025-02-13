@@ -1,0 +1,76 @@
+name: PR Review with AI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]  # 监听 PR 被创建、更新或重新打开的事件
+
+jobs:
+  review:
+    runs-on: ubuntu-latest  # 在 GitHub 的 Ubuntu 虚拟环境上运行
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'  # 设置 Python 环境
+
+      - name: Install dependencies
+        run: |
+          pip install requests  # 安装 requests 库用于 API 请求
+          pip install openai  # 如果你使用 OpenAI API 或其他 AI 工具，可以在这里安装
+
+      - name: Get PR diff and send to AI for analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        id: ai_analysis
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          OWNER=${{ github.repository_owner }}
+          REPO=${{ github.event.repository.name }}
+          DIFF_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}.diff"
+          
+          # 获取 PR diff 内容
+          PR_DIFF=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $DIFF_URL)
+
+          # 清理 PR diff 内容中的控制字符
+          PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
+
+          # 发送 PR diff 内容到 DeepSeek API 进行分析
+          AI_RESPONSE=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
+            -d '{
+                  "model": "deepseek-chat",
+                  "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": "'"$PR_DIFF_CLEANED"'"}
+                  ],
+                  "stream": false
+                }')
+
+          # 打印 API 返回的原始响应内容
+          echo "API Response: $AI_RESPONSE"
+
+          # 检查 API 响应是否包含余额不足的错误
+          if echo "$AI_RESPONSE" | grep -q '"message":"Insufficient Balance"'; then
+            AI_COMMENT="AI余额不足，请检查账户余额。"
+          else
+            # 提取 AI 返回的评论内容
+            AI_COMMENT=$(echo $AI_RESPONSE | jq -r '.choices[0].message.content')
+          fi
+
+          # 输出 AI 评论内容，供后续步骤使用
+          echo "::set-output name=ai_comment::$AI_COMMENT"
+
+      - name: Post AI comment to PR
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          OWNER=${{ github.repository_owner }}
+          REPO=${{ github.event.repository.name }}
+          COMMENT_API_URL="https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR_NUMBER}/comments"
+
+          # 使用 GitHub API 发送 AI 分析生成的评论
+          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -d "{\"body\": \"${{ steps.ai_analysis.outputs.ai_comment }}\"}" $COMMENT_API_URL
