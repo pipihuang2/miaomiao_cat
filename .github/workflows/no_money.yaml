@@ -94,7 +94,6 @@ jobs:
 
           # 输出 AI 评论内容
           echo "::set-output name=ai_comment::$AI_COMMENT"
-
       - name: Post AI comment to PR
         env:
           GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
@@ -106,8 +105,12 @@ jobs:
 
           # 获取 AI 评论内容
           COMMENT_BODY="${{ steps.ai_analysis.outputs.ai_comment }}"
+
           # 转义特殊字符，确保安全
-          COMMENT_BODY=$(echo "$COMMENT_BODY" | sed 's/`/\\`/g' | sed 's/"/\\"/g')
+          COMMENT_BODY=$(echo "$COMMENT_BODY" | sed 's/`/\\`/g' | sed 's/"/\\"/g' | sed 's/\//\\\//g' | sed 's/\$/\\\$/g' | sed 's/\(/\\(/g' | sed 's/\)/\\)/g')
+          # 如果存在换行符，替换为 \n
+          COMMENT_BODY=$(echo "$COMMENT_BODY" | sed ':a;N;$!ba;s/\n/\\n/g')
+
           echo "Comment Body: $COMMENT_BODY"
 
           # 检查评论内容是否为空
@@ -129,3 +132,4 @@ jobs:
             echo "Error: Failed to post comment. Status: $HTTP_STATUS"
             exit 1
           fi
+      
