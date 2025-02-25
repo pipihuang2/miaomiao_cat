@@ -31,6 +31,7 @@ jobs:
           REPO=${{ github.event.repository.name }}
           DIFF_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}.diff"
 
+          # 获取 PR diff 内容
           echo "Fetching diff from: $DIFF_URL"
           PR_DIFF=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
             -H "Authorization: token $GITHUB_TOKEN" \
@@ -43,6 +44,7 @@ jobs:
           PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
           echo "PR Diff: $PR_DIFF_CLEANED"
 
+          # 检查 PR Diff 是否有效
           if [ -z "$PR_DIFF_CLEANED" ]; then
             echo "Error: Failed to retrieve PR diff."
             exit 1
@@ -56,6 +58,7 @@ jobs:
             exit 1
           fi
 
+          # 使用 jq 构造 JSON 请求
           REQUEST_BODY=$(jq -n \
             --arg diff "$PR_DIFF_CLEANED" \
             '{
@@ -68,12 +71,14 @@ jobs:
             }')
           echo "Request Body: $REQUEST_BODY"
 
+          # 发送请求到 DeepSeek API
           AI_RESPONSE=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
             -d "$REQUEST_BODY")
           echo "API Response: $AI_RESPONSE"
 
+          # 检查是否为余额不足的错误
           if echo "$AI_RESPONSE" | grep -q '"message":"Insufficient Balance"'; then
             AI_COMMENT="AI余额不足，请检查DeepSeek账户余额。"
           else
@@ -81,12 +86,14 @@ jobs:
           fi
           echo "AI Comment: $AI_COMMENT"
 
+          # 检查是否成功提取评论
           if [ -z "$AI_COMMENT" ] || [ "$AI_COMMENT" = "Error: No valid response from AI" ]; then
             echo "Failed to get a valid AI comment. Falling back to default message."
             AI_COMMENT="AI分析失败，请手动检查代码差异。"
           fi
 
-          echo "ai_comment=$AI_COMMENT" >> $GITHUB_OUTPUT
+          # 输出 AI 评论内容
+          echo "::set-output name=ai_comment::$AI_COMMENT"
 
       - name: Post AI comment to PR
         env:
