@@ -106,12 +106,24 @@ jobs:
 
           # 获取 AI 评论内容
           COMMENT_BODY="${{ steps.ai_analysis.outputs.ai_comment }}"
+          echo "Comment Body: $COMMENT_BODY"
 
           # 检查评论内容是否为空
           if [ -z "$COMMENT_BODY" ]; then
             COMMENT_BODY="Error: No comment generated."
           fi
 
-          # 发送评论到 PR
-          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-            -d "{\"body\": \"$COMMENT_BODY\"}" "$COMMENT_API_URL"
+          # 发送评论到 PR，并检查响应
+          echo "Posting comment to: $COMMENT_API_URL"
+          CURL_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -d "{\"body\": \"$COMMENT_BODY\"}" "$COMMENT_API_URL")
+          HTTP_STATUS=$(echo "$CURL_RESPONSE" | grep '^HTTP_STATUS:' | cut -d':' -f2)
+          CURL_RESPONSE=$(echo "$CURL_RESPONSE" | grep -v '^HTTP_STATUS:')
+
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Curl Response: $CURL_RESPONSE"
+          if [ "$HTTP_STATUS" -ne 201 ]; then
+            echo "Error: Failed to post comment. Status: $HTTP_STATUS"
+            exit 1
+          fi
