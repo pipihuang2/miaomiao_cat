@@ -36,6 +36,16 @@ jobs:
           PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
           echo "PR Diff: $PR_DIFF_CLEANED"
 
+          # 检查 PR Diff 是否有效
+          if [ -z "$PR_DIFF_CLEANED" ]; then
+            echo "Error: Failed to retrieve PR diff."
+            exit 1
+          fi
+          if echo "$PR_DIFF_CLEANED" | grep -q '^{.*}$'; then
+            echo "Error: PR Diff is JSON metadata instead of code diff. Check DIFF_URL."
+            exit 1
+          fi
+
           # 使用 jq 构造 JSON 请求
           REQUEST_BODY=$(jq -n \
             --arg diff "$PR_DIFF_CLEANED" \
@@ -43,10 +53,11 @@ jobs:
               "model": "deepseek-chat",
               "messages": [
                 {"role": "system", "content": "You are a code review assistant. Analyze the provided code diff and generate a concise, helpful review comment."},
-                {"role": "user", "content": "Here is the code diff from a pull request:\n" + $diff + "\nPlease provide a review comment."}
+                {"role": "user", "content": ("Here is the code diff from a pull request:\n" + $diff + "\nPlease provide a review comment.")}
               ],
               "stream": false
             }')
+          echo "Request Body: $REQUEST_BODY"
 
           # 发送请求到 DeepSeek API
           AI_RESPONSE=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
