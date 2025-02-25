@@ -1,58 +1,47 @@
-name: AI_SEND_COMMENT
+- name: Get PR diff and send to AI for analysis
+  env:
+    GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
+    DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+  id: ai_analysis
+  run: |
+    PR_NUMBER=${{ github.event.pull_request.number }}
+    OWNER=${{ github.repository_owner }}
+    REPO=${{ github.event.repository.name }}
+    DIFF_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}.diff"
+    
+    # 获取 PR diff 内容
+    PR_DIFF=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$DIFF_URL")
+    PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
+    echo "PR Diff: $PR_DIFF_CLEANED"
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+    # 使用 jq 构造 JSON 请求
+    REQUEST_BODY=$(jq -n \
+      --arg diff "$PR_DIFF_CLEANED" \
+      '{
+        "model": "deepseek-chat",
+        "messages": [
+          {"role": "system", "content": "You are a code review assistant. Analyze the provided code diff and generate a concise, helpful review comment."},
+          {"role": "user", "content": "Here is the code diff from a pull request:\n" + $diff + "\nPlease provide a review comment."}
+        ],
+        "stream": false
+      }')
 
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
-        run: |
-          pip install requests jq
-
-      - name: Get PR diff and send to AI for analysis
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-        id: ai_analysis
-        run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          OWNER=${{ github.repository_owner }}
-          REPO=${{ github.event.repository.name }}
-          DIFF_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}.diff"
-          
-          # 获取 PR diff 内容
-          PR_DIFF=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$DIFF_URL")
-          PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
-          echo "PR Diff: $PR_DIFF_CLEANED"
-
-          # 发送 PR diff 内容到 DeepSeek API 进行分析
-          AI_RESPONSE=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
-            -d '{
-                  "model": "deepseek-chat",
-                  "messages": [
-                    {"role": "system", "content": "You are a code review assistant. Analyze the provided code diff and generate a concise, helpful review comment."},
-                    {"role": "user", "content": "Here is the code diff from a pull request:\n'"$PR_DIFF_CLEANED"'\nPlease provide a review comment."}
-                  ],
-                  "stream": false
-                }')
-          echo "API Response: $AI_RESPONSE"
-          
-          # 提取 AI 返回的评论内容
-          AI_COMMENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // "Error: No valid response from AI"')
-          echo "AI Comment: $AI_COMMENT"
-          
-          # 检查是否成功提取评论
-          if [ -z "$AI_COMMENT" ] || [ "$AI
+    # 发送请求到 DeepSeek API
+    AI_RESPONSE=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
+      -d "$REQUEST_BODY")
+    echo "API Response: $AI_RESPONSE"
+    
+    # 提取 AI 返回的评论内容
+    AI_COMMENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // "Error: No valid response from AI"')
+    echo "AI Comment: $AI_COMMENT"
+    
+    # 检查是否成功提取评论
+    if [ -z "$AI_COMMENT" ] || [ "$AI_COMMENT" = "Error: No valid response from AI" ]; then
+      echo "Failed to get a valid AI comment."
+      exit 1
+    fi
+    
+    # 输出 AI 评论内容
+    echo "::set-output name=ai_comment::$AI_COMMENT"
