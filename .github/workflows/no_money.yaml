@@ -2,11 +2,11 @@ name: No_Money
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]  # 监听 PR 被创建、更新或重新打开的事件
+    types: [opened, synchronize, reopened]
 
 jobs:
   review:
-    runs-on: ubuntu-latest  # 在 GitHub 的 Ubuntu 虚拟环境上运行
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -14,12 +14,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.9'  # 设置 Python 环境
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
-          pip install requests  # 安装 requests 库用于 API 请求
-          pip install openai  # 如果你使用 OpenAI API 或其他 AI 工具，可以在这里安装
+          pip install requests jq
 
       - name: Get PR diff and send to AI for analysis
         env:
@@ -31,38 +30,69 @@ jobs:
           OWNER=${{ github.repository_owner }}
           REPO=${{ github.event.repository.name }}
           DIFF_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}.diff"
-          
-          # 清理 PR diff 内容中的控制字符
-          PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
-          
-          # 获取 PR diff 内容
-          PR_DIFF=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $DIFF_URL)
 
-          # 发送 PR diff 内容到 DeepSeek API 进行分析
+          # 获取 PR diff 内容
+          echo "Fetching diff from: $DIFF_URL"
+          PR_DIFF=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.diff" \
+            "$DIFF_URL")
+          HTTP_STATUS=$(echo "$PR_DIFF" | grep '^HTTP_STATUS:' | cut -d':' -f2)
+          PR_DIFF=$(echo "$PR_DIFF" | grep -v '^HTTP_STATUS:')
+
+          echo "HTTP Status: $HTTP_STATUS"
+          PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
+          echo "PR Diff: $PR_DIFF_CLEANED"
+
+          # 检查 PR Diff 是否有效
+          if [ -z "$PR_DIFF_CLEANED" ]; then
+            echo "Error: Failed to retrieve PR diff."
+            exit 1
+          fi
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Error: HTTP request failed with status $HTTP_STATUS."
+            exit 1
+          fi
+          if echo "$PR_DIFF_CLEANED" | grep -q '^{.*}$'; then
+            echo "Error: PR Diff is JSON metadata instead of code diff. Check DIFF_URL or GITHUB_TOKEN permissions."
+            exit 1
+          fi
+
+          # 使用 jq 构造 JSON 请求
+          REQUEST_BODY=$(jq -n \
+            --arg diff "$PR_DIFF_CLEANED" \
+            '{
+              "model": "deepseek-chat",
+              "messages": [
+                {"role": "system", "content": "You are a code review assistant. Analyze the provided code diff and generate a concise, helpful review comment."},
+                {"role": "user", "content": ("Here is the code diff from a pull request:\n" + $diff + "\nPlease provide a review comment.")}
+              ],
+              "stream": false
+            }')
+          echo "Request Body: $REQUEST_BODY"
+
+          # 发送请求到 DeepSeek API
           AI_RESPONSE=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
-            -d '{
-                  "model": "deepseek-chat",
-                  "messages": [
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": "'"$PR_DIFF_CLEANED"'"}
-                  ],
-                  "stream": false
-                }')
-
-          # 打印 API 返回的原始响应内容
+            -d "$REQUEST_BODY")
           echo "API Response: $AI_RESPONSE"
 
-          # 检查 API 响应是否包含余额不足的错误
+          # 检查是否为余额不足的错误
           if echo "$AI_RESPONSE" | grep -q '"message":"Insufficient Balance"'; then
-            AI_COMMENT="AI余额不足，请检查账户余额。"
+            AI_COMMENT="AI余额不足，请检查DeepSeek账户余额。"
           else
-            # 提取 AI 返回的评论内容
-            AI_COMMENT=$(echo $AI_RESPONSE | jq -r '.choices[0].message.content')
+            AI_COMMENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // "Error: No valid response from AI"')
+          fi
+          echo "AI Comment: $AI_COMMENT"
+
+          # 检查是否成功提取评论
+          if [ -z "$AI_COMMENT" ] || [ "$AI_COMMENT" = "Error: No valid response from AI" ]; then
+            echo "Failed to get a valid AI comment. Falling back to default message."
+            AI_COMMENT="AI分析失败，请手动检查代码差异。"
           fi
 
-          # 输出 AI 评论内容，供后续步骤使用
+          # 输出 AI 评论内容
           echo "::set-output name=ai_comment::$AI_COMMENT"
 
       - name: Post AI comment to PR
@@ -74,31 +104,26 @@ jobs:
           REPO=${{ github.event.repository.name }}
           COMMENT_API_URL="https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR_NUMBER}/comments"
 
-          # 使用 GitHub API 发送 AI 分析生成的评论
-          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -d "{\"body\": \"${{ steps.ai_analysis.outputs.ai_comment }}\"}" $COMMENT_API_URL
+          # 获取 AI 评论内容
+          COMMENT_BODY="${{ steps.ai_analysis.outputs.ai_comment }}"
+          echo "Comment Body: $COMMENT_BODY"
 
+          # 检查评论内容是否为空
+          if [ -z "$COMMENT_BODY" ]; then
+            COMMENT_BODY="Error: No comment generated."
+          fi
 
-#      - name: Analyze PR changes and post comment
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}  # GitHub 自动提供的 Token，具有基本的权限
-#        run: |
-#          # 获取 PR 的信息
-#          PR_NUMBER=${{ github.event.pull_request.number }}
-#          OWNER=${{ github.repository_owner }}
-#          REPO=${{ github.event.repository.name }}
-#          API_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}"
-#
-#          # 使用 curl 获取 PR 详情
-#          PR_INFO=$(curl -s -H "Authorization: token $GITHUB_TOKEN" $API_URL)
-#
-#          # 提取 PR 标题和修改内容（可根据需要修改）
-#          PR_TITLE=$(echo $PR_INFO | jq -r '.title')
-#          PR_BODY=$(echo $PR_INFO | jq -r '.body')
-#          PR_CHANGES_URL=$(echo $PR_INFO | jq -r '.url')
-#
-#          # 假设你有一个 AI 模型分析改动并生成评论
-#          COMMENT="感谢提交我是一个测试！！！！！！！！！！！！！！！！！！ PR！\n\n### 需要注意的修改建议：\n- 请确保代码符合项目风格\n- 可以考虑优化XXX部分"
-#
-#          # 通过 GitHub API 提交评论
-#          COMMENT_API_URL="https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR_NUMBER}/comments"
-#          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -d "{\"body\": \"$COMMENT\"}" $COMMENT_API_URL
+          # 发送评论到 PR，并检查响应
+          echo "Posting comment to: $COMMENT_API_URL"
+          CURL_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -d "{\"body\": \"$COMMENT_BODY\"}" "$COMMENT_API_URL")
+          HTTP_STATUS=$(echo "$CURL_RESPONSE" | grep '^HTTP_STATUS:' | cut -d':' -f2)
+          CURL_RESPONSE=$(echo "$CURL_RESPONSE" | grep -v '^HTTP_STATUS:')
+
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Curl Response: $CURL_RESPONSE"
+          if [ "$HTTP_STATUS" -ne 201 ]; then
+            echo "Error: Failed to post comment. Status: $HTTP_STATUS"
+            exit 1
+          fi
