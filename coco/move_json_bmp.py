@@ -3,9 +3,9 @@ import shutil
 import random
 
 # 源文件夹和目标文件夹路径
-source_dir = r'\\192.168.11.200\e\nas备份\Star\data\processed\new_data_241227\star_4\train'  # 存放原始文件的目录
-train_dir = r'\\192.168.11.200\e\nas备份\Star\data\processed\new_data_241227\star_4\1233'    # 训练集文件夹
-val_dir = r'\\192.168.11.200\e\nas备份\Star\data\processed\new_data_241227\star_4\1233'       # 验证集文件夹
+source_dir = r'F:\deeplearning\pytorch\miao_tools\miaomiao_cat\pic_and_json\total'  # 存放原始文件的目录
+train_dir = r'F:\deeplearning\pytorch\miao_tools\miaomiao_cat\pic_and_json\train'    # 训练集文件夹
+val_dir = r'F:\deeplearning\pytorch\miao_tools\miaomiao_cat\pic_and_json\val'       # 验证集文件夹
 
 # 创建目标文件夹
 os.makedirs(train_dir, exist_ok=True)

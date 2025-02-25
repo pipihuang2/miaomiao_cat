@@ -3,7 +3,7 @@ from collections import Counter
 import glob
 import tqdm
 # 获取所有 JSON 文件路径
-json_list = glob.glob(r'F:\800B\totoal_rating_data\*.json')
+json_list = glob.glob(r'F:\deeplearning\pytorch\miao_tools\miaomiao_cat\pic_and_json\total\*.json')
 
 # 初始化全局计数器和类别集合
 global_label_counts = Counter()
