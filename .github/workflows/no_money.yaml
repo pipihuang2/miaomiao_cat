@@ -32,7 +32,15 @@ jobs:
           DIFF_URL="https://api.github.com/repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}.diff"
 
           # 获取 PR diff 内容
-          PR_DIFF=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$DIFF_URL")
+          echo "Fetching diff from: $DIFF_URL"
+          PR_DIFF=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.diff" \
+            "$DIFF_URL")
+          HTTP_STATUS=$(echo "$PR_DIFF" | grep '^HTTP_STATUS:' | cut -d':' -f2)
+          PR_DIFF=$(echo "$PR_DIFF" | grep -v '^HTTP_STATUS:')
+
+          echo "HTTP Status: $HTTP_STATUS"
           PR_DIFF_CLEANED=$(echo "$PR_DIFF" | tr -d '\000-\031')
           echo "PR Diff: $PR_DIFF_CLEANED"
 
@@ -41,8 +49,12 @@ jobs:
             echo "Error: Failed to retrieve PR diff."
             exit 1
           fi
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Error: HTTP request failed with status $HTTP_STATUS."
+            exit 1
+          fi
           if echo "$PR_DIFF_CLEANED" | grep -q '^{.*}$'; then
-            echo "Error: PR Diff is JSON metadata instead of code diff. Check DIFF_URL."
+            echo "Error: PR Diff is JSON metadata instead of code diff. Check DIFF_URL or GITHUB_TOKEN permissions."
             exit 1
           fi
 
@@ -70,7 +82,6 @@ jobs:
           if echo "$AI_RESPONSE" | grep -q '"message":"Insufficient Balance"'; then
             AI_COMMENT="AI余额不足，请检查DeepSeek账户余额。"
           else
-            # 提取 AI 返回的评论内容
             AI_COMMENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // "Error: No valid response from AI"')
           fi
           echo "AI Comment: $AI_COMMENT"
