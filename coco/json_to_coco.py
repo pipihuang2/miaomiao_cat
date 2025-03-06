@@ -2,8 +2,8 @@ import json
 import os
 
 # 设置源 JSON 文件夹和输出 COCO JSON 文件
-source_dir = r'F:\deeplearning\pytorch\miao_tools\miaomiao_cat\pic_and_json\val'  # JSON 文件所在的目录
-output_file = r'F:\deeplearning\pytorch\miao_tools\miaomiao_cat\pic_and_json\coco_format_val.json'
+source_dir = r'F:\800B\val'  # JSON 文件所在的目录
+output_file = r'F:\800B\coco_format_val.json'
 
 # 初始化 COCO 格式的字典
 coco_format = {
@@ -34,19 +34,18 @@ category_dict = {}  # 用于存储类别和其对应的ID
 
 # 定义标签映射，将中文标签转换为英文
 label_mapping = {
-    "cut": "cut",
-    "透光": "ng",
-    "胶分层": "ng",
-    "接头缺胶": "ng",
-    "气泡": "ng",
-    "残胶污迹": "ng",
     "断胶": "ng",
+    "残胶污迹": "ng",
     "异物混入": "ng",
-    "胶宽超宽": "ng",
-    "胶宽不足": "ng",
-    "收胶不良": "ng",
+    "接头缺胶": "ng",
+    "胶分层": "ng",
     "记号笔印": "ng",
-
+    "收胶不良": "ng",
+    "胶宽超宽": "ng",
+    "气泡": "ng",
+    "透光": "ng",
+    "胶宽不足": "ng",
+    "cut assy": "ng",
 }
 
 # 遍历 source_dir 中的所有 JSON 文件

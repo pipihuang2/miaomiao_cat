@@ -3,7 +3,7 @@ import glob
 import shutil
 import tqdm
 
-json_file = glob.glob(r'G:\250212\exposure_2\*.json')
+json_file = glob.glob(r'G:\123345\COMBINED222\three\*.json')
 valid_json_files = []
 for i in tqdm.tqdm(json_file):
     with open(i, 'r', encoding='utf-8') as f:
@@ -18,6 +18,6 @@ for i in tqdm.tqdm(json_file):
 
 
 for i in tqdm.tqdm(valid_json_files):
-    shutil.move(i,r'G:\250212\expourse_3')
+    shutil.move(i,r'G:\123345\COMBINED222\homeaaa')
     i=i.replace('.json','.jpg')
-    shutil.move(i, r'G:\250212\expourse_3')
+    shutil.move(i, r'G:\123345\COMBINED222\homeaaa')
