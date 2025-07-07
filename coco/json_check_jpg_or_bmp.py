@@ -50,7 +50,7 @@ def process_json_files(directory, image_extensions):
 # 主程序入口
 if __name__ == "__main__":
     # 设置目标目录路径和支持的图片格式
-    target_directory = r"F:\deeplearning\pytorch\miao_tools\miaomiao_cat\pic_and_json\val"  # 替换为实际目录路径
+    target_directory = r"G:\data\F2_New\val"  # 替换为实际目录路径
     image_extensions = ['.jpg', '.jpeg', '.bmp', '.png']  # 支持的图片格式
 
     # 执行处理
