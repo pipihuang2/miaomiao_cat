@@ -26,7 +26,7 @@ jobs:
       - name: Send PR Notification to Feishu
         run: |
           # 获取事件类型和相关信息
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request_review_comment" ]]; then
             pr_title="${{ github.event.pull_request.title }}"
             pr_url="${{ github.event.pull_request.html_url }}"
             pr_creator="${{ github.event.pull_request.user.login }}"
@@ -61,9 +61,6 @@ jobs:
             commenter="${{ github.event.comment.user.login }}"
             comment_body="${{ github.event.comment.body }}"
             pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
-            if [[ "$comment_body" == *"![image"* ]]; then
-              comment_body="评论中包含图片，详情请前往 PR 页面查看。"
-            fi
             msg="💬 PR 代码行评论已更新！\n标题: $pr_title\n评论人: $commenter\n分支: $pr_branch\n🔗 $pr_url\n💬 评论内容: $comment_body"
           elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             # 处理PR的直接评论
@@ -72,15 +69,23 @@ jobs:
             commenter="${{ github.event.comment.user.login }}"
             comment_body="${{ github.event.comment.body }}"
             pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
-            msg="💬 PR 直接评论已更新！\n标题: $pr_title\n评论人: $commenter\n分支: $pr_branch\n🔗 $pr_url\n💬 评论内容: $comment_body"
+            msg="💬 PR 代码行评论已更新！\\n标题: $pr_title\\n评论人: $commenter\\n分支: $pr_branch\\n🔗 $pr_url\\n💬 评论内容: $safe_comment_body\"
           fi
-
+             json=$(jq -n --arg text "$msg" '{msg_type:"text", content:{text:$text}}')
+#           json="{
+#              \"msg_type\": \"text\",
+#               \"content\": {
+#                \"text\": \"$msg\"
+#           }"
+          
+          echo "$json"
           # 发送消息到飞书
           curl -X POST "https://open.feishu.cn/open-apis/bot/v2/hook/d15977a4-387f-4c2b-8335-af382c393867" \
           -H "Content-Type: application/json" \
-          -d "{
-            \"msg_type\": \"text\",
-            \"content\": {
-              \"text\": \"$msg\"
-            }
-          }"
+          -d "$json"
+#          -d "{
+#            \"msg_type\": \"text\",
+#            \"content\": {
+#              \"text\": \"$msg\"
+#            }
+#          }"
