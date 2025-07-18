@@ -61,9 +61,7 @@ jobs:
             commenter="${{ github.event.comment.user.login }}"
             comment_body="${{ github.event.comment.body }}"
             pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
-            if [[ "$comment_body" == *"![image"* ]]; then
-              comment_body="评论中包含图片，详情请前往 PR 页面查看。"
-            fi
+
             msg="💬 PR 代码行评论已更新！\n标题: $pr_title\n评论人: $commenter\n分支: $pr_branch\n🔗 $pr_url\n💬 评论内容: $comment_body"
           elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             # 处理PR的直接评论
