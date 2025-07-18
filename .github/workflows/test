@@ -1,0 +1,86 @@
+name: Notify Feishu on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]  # 处理PR创建、更新、重新打开和关闭事件
+  pull_request_review:
+    types: [submitted, edited]  # 用于PR审查者的整体评论
+  pull_request_review_comment:
+    types: [created, edited]  # 用于代码行的评论
+  issue_comment:
+    types: [created, edited]  # 用于PR的直接评论
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check event payload (for debugging)
+        run: |
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Action: ${{ github.event.action }}"
+          echo "PR Title: ${{ github.event.issue.title }}"
+          echo "Comment Body: ${{ github.event.comment.body }}"
+          echo "PR Branch: ${{ github.event.pull_request.head.ref }}"
+          echo "PR State: ${{ github.event.pull_request.state }}"  # 获取PR状态，closed或open
+
+      - name: Send PR Notification to Feishu
+        run: |
+          # 获取事件类型和相关信息
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            pr_title="${{ github.event.pull_request.title }}"
+            pr_url="${{ github.event.pull_request.html_url }}"
+            pr_creator="${{ github.event.pull_request.user.login }}"
+            pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
+            if [[ "${{ github.event.action }}" == "opened" ]]; then
+              # PR 创建事件
+              msg="📢 新的 Pull Request 创建！\n标题: $pr_title\n创建人: $pr_creator\n分支: $pr_branch\n🔗 $pr_url"
+            elif [[ "${{ github.event.action }}" == "synchronize" ]]; then
+              # PR 更新事件（代码推送）
+              pr_updater="${{ github.event.pull_request.user.login }}"
+              msg="🔄 Pull Request 更新！\n标题: $pr_title\n更新人: $pr_updater\n分支: $pr_branch\n🔗 $pr_url"
+            elif [[ "${{ github.event.action }}" == "closed" ]]; then
+              # PR 关闭事件
+              pr_closer="${{ github.event.pull_request.user.login }}"
+              msg="❌ Pull Request 已关闭！\n标题: $pr_title\n关闭人: $pr_closer\n分支: $pr_branch\n🔗 $pr_url"
+            fi
+          elif [[ "${{ github.event_name }}" == "pull_request_review" ]]; then
+            pr_title="${{ github.event.pull_request.title }}"
+            pr_url="${{ github.event.pull_request.html_url }}"
+            reviewer="${{ github.event.review.user.login }}"
+            review_state="${{ github.event.review.state }}"  # 获取审查状态
+            pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
+            if [[ "$review_state" == "commented" ]]; then
+              # 如果审查状态为 "commented"，获取评论内容
+              msg="🔍 PR 审查评论已提交！\n标题: $pr_title\n评论人: $reviewer\n审查状态: commented\n分支: $pr_branch\n🔗 $pr_url\n💬 评论内容: ${{ github.event.review.body }}"
+            else
+              msg="🔍 PR 审查评论已提交！\n标题: $pr_title\n评论人: $reviewer\n审查状态: $review_state\n分支: $pr_branch\n🔗 $pr_url"
+            fi
+          elif [[ "${{ github.event_name }}" == "pull_request_review_comment" ]]; then
+            pr_title="${{ github.event.pull_request.title }}"
+            pr_url="${{ github.event.pull_request.html_url }}"
+            commenter="${{ github.event.comment.user.login }}"
+            comment_body="${{ github.event.comment.body }}"
+            pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
+            if [[ "$comment_body" == *"![image"* ]]; then
+              comment_body="评论中包含图片，详情请前往 PR 页面查看。"
+            fi
+            msg="💬 PR 代码行评论已更新！\n标题: $pr_title\n评论人: $commenter\n分支: $pr_branch\n🔗 $pr_url\n💬 评论内容: $comment_body"
+          elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            # 处理PR的直接评论
+            pr_title="${{ github.event.issue.title }}"
+            pr_url="${{ github.event.issue.html_url }}"
+            commenter="${{ github.event.comment.user.login }}"
+            comment_body="${{ github.event.comment.body }}"
+            pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
+            msg="💬 PR 直接评论已更新！\n标题: $pr_title\n评论人: $commenter\n分支: $pr_branch\n🔗 $pr_url\n💬 评论内容: $comment_body"
+          fi
+
+          # 发送消息到飞书
+          curl -X POST "https://open.feishu.cn/open-apis/bot/v2/hook/d15977a4-387f-4c2b-8335-af382c393867" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"msg_type\": \"text\",
+            \"content\": {
+              \"text\": \"$msg\"
+            }
+          }"
