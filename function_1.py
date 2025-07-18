@@ -22,7 +22,7 @@ elif not json_file_list:
     print('json路径中没有相关文件')
 
 target_file_json = 'D:\Project\HYJ\Data_Processing\json'
-target_file_jpg = 'D:\Project\HYJ\Data_Processing\jpg'
+target_file_jpg = 'D:\Project\HYJ\Data_Processing2\jpg'
 
 different_file_list = [os.path.basename(file).split('.')[0] for file in json_file_list]
 same_file_list = [os.path.basename(file).split('.')[0] for file in json_file_list]
