@@ -74,13 +74,9 @@ jobs:
             pr_branch="${{ github.event.pull_request.head.ref }}"  # 获取源分支
             msg="💬 PR 直接评论已更新！\n标题: $pr_title\n评论人: $commenter\n分支: $pr_branch\n🔗 $pr_url\n💬 评论内容: $comment_body"
           fi
-
+          json=$(jq -n --arg text "$msg" '{"msg_type":"text", "content":{"text":$text}}')
+          
           # 发送消息到飞书
           curl -X POST "https://open.feishu.cn/open-apis/bot/v2/hook/d15977a4-387f-4c2b-8335-af382c393867" \
           -H "Content-Type: application/json" \
-          -d "{
-            \"msg_type\": \"text\",
-            \"content\": {
-              \"text\": \"$msg\"
-            }
-          }"
+          -d "$json"
