@@ -3,9 +3,9 @@ import shutil
 import random
 
 # 源文件夹和目标文件夹路径
-source_dir = r'G:\data\data_250225'  # 存放原始文件的目录
-train_dir = r'G:\data\F2_New\train'    # 训练集文件夹
-val_dir = r'G:\data\F2_New\val'       # 验证集文件夹
+source_dir = r'E:\hyy\miaomiao_cat\Calibration\calibration_pic\0924\y'  # 存放原始文件的目录
+train_dir = os.path.join(source_dir,"train")    # 训练集文件夹
+val_dir = os.path.join(source_dir,"val")        # 验证集文件夹
 
 # 创建目标文件夹
 os.makedirs(train_dir, exist_ok=True)

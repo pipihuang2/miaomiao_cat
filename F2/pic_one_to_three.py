@@ -28,8 +28,8 @@ def process_image(image_path, output_dir):
 
 
 def main():
-    input_folder = r"G:\0319\COMBINED"
-    output_folder = r"G:\0319\one-to-three"
+    input_folder = r"E:\T1\0929\have"
+    output_folder = r"E:\T1\0929\three"
     os.makedirs(output_folder, exist_ok=True)
 
     pic_list = glob.glob(os.path.join(input_folder, "*.jpg"))

@@ -3,7 +3,7 @@ from collections import Counter
 import glob
 import tqdm
 # 获取所有 JSON 文件路径
-json_list = glob.glob(r'G:\data\data_250225\*.json')
+json_list = glob.glob(r'D:\Project\HYJ_Pic\F2\three\data_0710\val\*.json')
 
 # 初始化全局计数器和类别集合
 global_label_counts = Counter()

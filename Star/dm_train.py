@@ -37,7 +37,8 @@ class QRCodeDataset(Dataset):
             image = image_cache[fname]
         else:
             path = os.path.join(self.images_dir, fname)
-            image = Image.open(path).convert("L")
+            #灰度是L RGB是三通道
+            image = Image.open(path).convert("RGB")
             image_cache[fname] = image
 
         if self.transform:
@@ -48,23 +49,6 @@ class QRCodeDataset(Dataset):
         label_tensor = torch.tensor(label, dtype=torch.float32)  # shape: [196]
 
         return image, label_tensor
-
-
-# ============ 2. 创建模型 (transformers) ============
-
-def create_vit_model():
-    """
-    创建一个 ViTForImageClassification 实例:
-      - num_labels=196, 对应二维码 14x14
-      - problem_type="multi_label_classification", 用 BCE
-    """
-
-    model = ViTForImageClassification.from_pretrained("WinKawaks/vit-tiny-patch16-224",
-        num_labels=196,
-        ignore_mismatched_sizes=True,
-        num_channels=1,
-        problem_type="multi_label_classification")
-    return model
 
 
 
@@ -165,8 +149,7 @@ images_dir = r"D:\data_backup\all"
 
 train_dir = os.path.join(images_dir, "train")
 test_dir = os.path.join(images_dir, "test")
-# os.makedirs(train_dir, exist_ok=True)
-# os.makedirs(test_dir, exist_ok=True)
+
 
 
 import os
@@ -209,7 +192,7 @@ transform = transforms.Compose([
     RandomCropAroundEdges(max_crop=15),
     transforms.ColorJitter(brightness=0.5),  
     transforms.RandomRotation(degrees=(0, 15)), 
-    transforms.Resize((112, 112)),
+    transforms.Resize((224, 224)),
     RandomFixedRotation([0, 90, 180, 270]),
     transforms.ToTensor(),
 ])
@@ -218,51 +201,31 @@ dataset = QRCodeDataset(train_dir, label_dict, transform=transform)
 testdataset = QRCodeDataset(test_dir, test_label_dict, transform=transform)
 
 
-dataloader = DataLoader(dataset, batch_size=96, shuffle=True)
-testdataloader = DataLoader(testdataset, batch_size=96, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=192, shuffle = True)
+testdataloader = DataLoader(testdataset, batch_size=192, shuffle = False)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# model = create_vit_model().to(device)
 
-# model_path = "tiny-vit-dm-196-120K-aug.v3"
-# model = ViTForImageClassification.from_pretrained(model_path)
-# model = model.to(device)
 
 from transformers import ViTConfig
 # config = ViTConfig.from_pretrained("google/vit-base-patch16-224-in21k")
 config = ViTConfig.from_pretrained("WinKawaks/vit-tiny-patch16-224")
 config.patch_size = 8
-config.image_size = 112
+config.image_size = 224
 config.hidden_size = 192
 config.num_hidden_layers = 8
 config.num_attention_heads = 6
 config.intermediate_size = 394
 config.problem_type = "multi_label_classification"
 config.num_labels = 196
-config.num_channels = 1
+config.num_channels = 3
 model = ViTForImageClassification(config=config).to(device)
 
-# model_path = "vit-base"
-# model = ViTForImageClassification.from_pretrained(model_path).model.to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-transform = transforms.Compose([
-    RandomCropAroundEdges(max_crop=15),
-    transforms.ColorJitter(brightness=0.5),  
-    transforms.RandomRotation(degrees=(-10, 10)), 
-    transforms.Resize((112, 112)),
-    RandomFixedRotation([0, 90, 180, 270]),
-    transforms.ToTensor(),
-])
-
-dataloader.dataset.transform = transform
-testdataloader.dataset.transform = transform
 
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, verbose=True)
-
-# from torch.optim.lr_scheduler import StepLR
-# scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
 
 epochs = 1000
 for epoch in range(epochs):
