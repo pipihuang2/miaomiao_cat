@@ -14,22 +14,22 @@ def process_image(image_path, output_dir):
         return
 
     h, w = pic_.shape[:2]
-    w_ = w // 3
+    w_ = w // 2
 
-    pic_1 = pic_[:, 0: w_ + 400]
-    pic_2 = pic_[:, w_ - 400: w_ * 2]
-    pic_3 = pic_[:, w_ * 2 - 400:]
+    pic_1 = pic_[:, 0: w_]
+    pic_2 = pic_[:, w_ : w_ * 2]
+
 
     base_name = os.path.basename(image_path).split('.jpg')[0]
 
     cv2.imwrite(os.path.join(output_dir, f"{base_name}_1.jpg"), pic_1)
     cv2.imwrite(os.path.join(output_dir, f"{base_name}_2.jpg"), pic_2)
-    cv2.imwrite(os.path.join(output_dir, f"{base_name}_3.jpg"), pic_3)
+
 
 
 def main():
-    input_folder = r"D:\Project\HYJ_Pic\F2\260112\2"
-    output_folder = r"D:\Project\HYJ_Pic\F2\260112\three"
+    input_folder = r"D:\Project\HYJ_Pic\F2\260112\three"
+    output_folder = r"D:\Project\HYJ_Pic\F2\260112\two"
     os.makedirs(output_folder, exist_ok=True)
 
     pic_list = glob.glob(os.path.join(input_folder, "*.jpg"))

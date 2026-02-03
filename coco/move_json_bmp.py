@@ -3,7 +3,7 @@ import shutil
 import random
 
 # 源文件夹和目标文件夹路径
-source_dir = r'E:\hyy\miaomiao_cat\Calibration\calibration_pic\0924\y'  # 存放原始文件的目录
+source_dir = r'D:\Project\HYJ_Pic\new_cab\20260104\CamA\20260104\have'  # 存放原始文件的目录
 train_dir = os.path.join(source_dir,"train")    # 训练集文件夹
 val_dir = os.path.join(source_dir,"val")        # 验证集文件夹
 
@@ -12,19 +12,19 @@ os.makedirs(train_dir, exist_ok=True)
 os.makedirs(val_dir, exist_ok=True)
 
 # 获取所有的 .bmp 文件
-bmp_files = [f for f in os.listdir(source_dir) if f.endswith('.jpg')]
+bmp_files = [f for f in os.listdir(source_dir) if f.endswith('.png')]
 
 # 按 8:1 比例分配文件
 for bmp_file in bmp_files:
     # 检查是否有对应的 .json 文件
-    json_file = bmp_file.replace('.jpg', '.json')
+    json_file = bmp_file.replace('.png', '.json')
     if json_file in os.listdir(source_dir):
         # 随机决定是否放入 train 或 val 文件夹
         target_dir = train_dir if random.random() < 0.8 else val_dir
 
         # 移动 .bmp 文件和对应的 .json 文件
-        shutil.move(os.path.join(source_dir, bmp_file), os.path.join(target_dir, bmp_file))
-        shutil.move(os.path.join(source_dir, json_file), os.path.join(target_dir, json_file))
+        shutil.copy(os.path.join(source_dir, bmp_file), os.path.join(target_dir, bmp_file))
+        shutil.copy(os.path.join(source_dir, json_file), os.path.join(target_dir, json_file))
         print(f"Moved {bmp_file} and {json_file} to {target_dir}")
     else:
         print(f"No matching .json file for {bmp_file}")
