@@ -2,8 +2,8 @@ import json
 import os
 
 # 设置源 JSON 文件夹和输出 COCO JSON 文件
-source_dir = r'D:\Project\HYJ_Pic\F2\1202\have\val'  # JSON 文件所在的目录
-output_file = r'D:\Project\HYJ_Pic\F2\1202\have\coco_format_val.json'
+source_dir = r'D:\Project\HYJ_Pic\F2\coco\test2\2\train\val'  # JSON 文件所在的目录
+output_file = r'D:\Project\HYJ_Pic\F2\coco\test2\2\train\val\_annotations.coco.json'
 
 # 初始化 COCO 格式的字典
 coco_format = {

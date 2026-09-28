@@ -17,7 +17,7 @@ def split_ratio(lst: Sequence,ration: Tuple[int,int]) -> tuple[list,list]:
     return part1, part2
 
 
-dir_file = r"C:\Users\Administrator\Desktop\label_ng\20260110\train\e"
+dir_file = r"C:\Users\Administrator\Desktop\label_ng\20260820\train"
 train_dir = os.path.join(dir_file, "train")
 valid_dir = os.path.join(dir_file, "val")
 out = os.listdir(dir_file)

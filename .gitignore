@@ -1,3 +1,27 @@
-*.log       # 忽略所有 .log 文件
-*.tmp       # 忽略所有 .tmp 文件
-*.json       # 忽略所有 .json 文件
+*.log
+*.tmp
+
+# 忽略根目录及数据目录下的临时 JSON，但保留测试数据和代码中的配置
+/*.json
+data/*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

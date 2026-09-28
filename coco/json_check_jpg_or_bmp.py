@@ -1,3 +1,6 @@
+"""
+这个是检测文件夹里是否有对应的图片，比如说json里图片是A.jpg 查看文件夹里是否又A.jpg 如果又A.png 也替换上
+"""
 import os
 import json
 import tqdm
@@ -50,7 +53,7 @@ def process_json_files(directory, image_extensions):
 # 主程序入口
 if __name__ == "__main__":
     # 设置目标目录路径和支持的图片格式
-    target_directory = r"D:\Project\HYJ_Pic\vgs\vgs_train\newData\val"  # 替换为实际目录路径
+    target_directory = r"D:\Project\HYJ_Pic\F2\coco\test2\2\train"  # 替换为实际目录路径
     image_extensions = ['.jpg', '.jpeg', '.bmp', '.png']  # 支持的图片格式
 
     # 执行处理

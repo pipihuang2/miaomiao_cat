@@ -15,6 +15,7 @@ from tqdm import tqdm  # 导入 tqdm
 import math
 import cv2
 import numpy as np
+Image.MAX_IMAGE_PIXELS = None
 
 def preprocess_image(img_path, output_dir=None, debug=False):
     """
@@ -92,24 +93,38 @@ def slice_single_image(input_image_path, output_folder_for_slices, slice_size=(5
                     # 将PIL Image转换为numpy数组
                     sliced_img_array = np.array(sliced_img)
 
+                    # =========================
+                    # 新增：白色占比过滤
+                    # =========================
+                    # 认为 RGB 三个通道都大于等于 245 的像素为“白色”
+                    white_mask = np.all(sliced_img_array >= 245, axis=2)
+                    white_ratio = np.mean(white_mask)
+
+                    # 如果白色占比 > 90%，则直接跳过，不保存
+                    if white_ratio > 0.9:
+                        pbar.update(1)
+                        continue
+
                     # 直接分离RGB通道（PIL Image是RGB格式）
                     r, g, b = sliced_img_array[:, :, 0], sliced_img_array[:, :, 1], sliced_img_array[:, :, 2]
-                    gray = (0.15 * r + 0.15 * g + 0.7 * b).astype(np.uint8)
+                    gray = (0.15 * r + 0.15 * g + 0.15 * b).astype(np.uint8)
                     gray = cv2.blur(gray, (25, 25))
 
                     # 边缘检测
                     kernel_x = np.array([30, 5, 0, -5, -30]).reshape(1, 5)  # 水平方向
                     kernel_y = np.array([30, 5, 0, -5, -30]).reshape(5, 1)  # 垂直方向
-                    # kernel_x = np.array([20, 10, 1, 0, -1, -10, -20]).reshape(1, 7)
-                    # kernel_y = np.array([20, 10, 1, 0, -1, -10, -20]).reshape(7, 1)
                     edge_x = cv2.filter2D(gray, -1, kernel_x)
                     edge_y = cv2.filter2D(gray, -1, kernel_y)
 
                     if (np.any(np.abs(edge_x) > 60) or np.any(np.abs(edge_y) > 60)):
-                        slice_filename = f"{image_name}_{slice_count}.png"
+                        import datetime,random
+                        name_ = random.randint(1, 1000)
+                        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                        slice_filename = f"{image_name}_{slice_count}_{timestamp}_{name_}.png"
                         output_path = os.path.join(output_folder_for_slices, slice_filename)
                         sliced_img.save(output_path)
                         slice_count += 1
+
                     pbar.update(1)
     except FileNotFoundError:
         print(f"错误: 图像文件未找到 - {input_image_path}")
@@ -145,8 +160,8 @@ def slice_images_in_folder(input_folder, output_folder_for_all_slices, slice_siz
     print(f"\n--- 所有图片处理完成 ---")
 
 if __name__ == "__main__":
-    input_folder = r"D:\Project\HYJ_Pic\new_cab\20260104\CamA\20260104"
-    base_output_folder = r"D:\Project\HYJ_Pic\new_cab\20260104\CamA\20260104\out"
+    input_folder = r"D:\Project\HYJ_Pic\F2\260811\3"
+    base_output_folder = r"D:\Project\HYJ_Pic\F2\CAB\crop_original"
     slice_size = (256, 256)
     # 设置 preprocess=True 则先进行预处理（二值化+裁剪），否则直接切割原图
     slice_images_in_folder(input_folder, base_output_folder, slice_size, preprocess=False, debug=False)

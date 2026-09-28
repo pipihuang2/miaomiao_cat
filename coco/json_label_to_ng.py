@@ -16,11 +16,12 @@ label_mapping = {
     "透光": "ng",
     "胶宽不足": "ng",
     "cut assy": "ng",
+    "turtle": "1"
 }
 
 # 输入和输出路径
-input_dir = r"E:\yrt\kong\data_0425\val"         # 原始 JSON 文件夹
-output_dir = r"E:\yrt\kong\data_0425\val"    # 输出目录
+input_dir = r"\\tianwei\TianweiNas\old-NAS\上一个nas的数据\nas_backup\Star\models\turtle_video\frames"         # 原始 JSON 文件夹
+output_dir = r"\\tianwei\TianweiNas\old-NAS\上一个nas的数据\nas_backup\Star\models\turtle_video\frames"    # 输出目录
 os.makedirs(output_dir, exist_ok=True)
 
 # 扫描所有 JSON 文件

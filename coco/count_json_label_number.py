@@ -1,3 +1,7 @@
+"""
+这个函数是用于检测目标检测里，标定好的json文件里有多少个label的
+"""
+
 import json
 from collections import Counter
 import glob

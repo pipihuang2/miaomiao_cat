@@ -3,7 +3,7 @@ import glob
 import shutil
 import tqdm
 
-json_file = glob.glob(r'D:\Project\HYJ_Pic\new_cab\20260104\CamA\20260104\seg\out\*.json')
+json_file = glob.glob(r'D:\Project\HYJ_Pic\F2\260828\result_2\predict\残胶污迹\*.json')
 valid_json_files = []
 for i in tqdm.tqdm(json_file):
     with open(i, 'r', encoding='utf-8') as f:
@@ -18,6 +18,6 @@ for i in tqdm.tqdm(json_file):
 
 
 for i in tqdm.tqdm(valid_json_files):
-    shutil.move(i,r'D:\Project\HYJ_Pic\new_cab\20260104\CamA\20260104\seg\have2')
-    i=i.replace('.json','.png')
-    shutil.move(i, r'D:\Project\HYJ_Pic\new_cab\20260104\CamA\20260104\seg\have2')
+    shutil.move(i,r'D:\Project\HYJ_Pic\F2\260828\result_2\predict\3')
+    i=i.replace('.json','.jpg')
+    shutil.move(i, r'D:\Project\HYJ_Pic\F2\260828\result_2\predict\3')
